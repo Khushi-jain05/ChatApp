@@ -1,11 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
-import "dotenv/config";
+import  dotenv from "dotenv";
 import { connectDB } from './lib/db.js';
 import userRouter from './routes/userRoutes.js';
 import messageRouter from './routes/messageRoutes.js';
 import { Server } from 'socket.io';
+dotenv.config();
 const app = express();
 const server = http.createServer(app);
 export const io=new Server(server,{

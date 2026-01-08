@@ -1,8 +1,8 @@
 import User from '../models/user.js';
 import bcrypt from 'bcryptjs';
-import { generateAuthToken } from '../lib/utils.js';
+import { generateToken } from '../lib/utils.js';
 import cloudinary from '../lib/cloudinary.js';
-export const signup=async (userData)=>{
+export const signup=async (req,res)=>{
     const {fullName,email,password,bio}=req.body;
     try {
         if(!fullName || !email || !password){
@@ -14,13 +14,13 @@ export const signup=async (userData)=>{
         }
         const salt=await bcrypt.genSalt(10);
         const hashedPassword=await bcrypt.hash(password,salt);
-        const newUser=new User.create({
+        const newUser=await  User.create({
             fullName,
             email,
             password:hashedPassword,
             bio
         });
-        const token=generateAuthToken(newUser._id);
+        const token=generateToken(newUser._id);
         res.json({success:true,userData:newUser,token,
             message:"Account created successfully"});
     } catch (error) {
@@ -41,7 +41,7 @@ export const login=async (req,res)=>{
         if(!isPasswordCorrect){
             return res.json({success:false,message:'Invalid credentials'});
         }
-        const token=generateAuthToken(userData._id);
+        const token=generateToken(userData._id);
         res.json({success:true,userData,token,
             message:"Account created successfully"});
     } catch (error) {
@@ -78,3 +78,138 @@ export const updateProfile=async (req,res)=>{
         res.json({success:false,user:error.message});
     }
 }
+// import User from '../models/user.js';
+// import bcrypt from 'bcryptjs';
+// import { generateToken } from '../lib/utils.js';
+// import cloudinary from '../lib/cloudinary.js';
+
+// // SIGNUP
+// export const signup = async (req, res) => {
+//   try {
+//     const { fullName, email, password, bio } = req.body;
+
+//     if (!fullName || !email || !password) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'All fields are required',
+//       });
+//     }
+
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'User already exists',
+//       });
+//     }
+
+//     const salt = await bcrypt.genSalt(10);
+//     const hashedPassword = await bcrypt.hash(password, salt);
+
+//     const newUser = await User.create({
+//       fullName,
+//       email,
+//       password: hashedPassword,
+//       bio,
+//     });
+
+//     const token = generateAuthToken(newUser._id);
+
+//     res.json({
+//       success: true,
+//       userData: newUser,
+//       token,
+//       message: 'Account created successfully',
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+// // LOGIN
+// export const login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const userData = await User.findOne({ email });
+//     if (!userData) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid credentials',
+//       });
+//     }
+
+//     const isPasswordCorrect = await bcrypt.compare(
+//       password,
+//       userData.password
+//     );
+
+//     if (!isPasswordCorrect) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid credentials',
+//       });
+//     }
+
+//     const token = generateAuthToken(userData._id);
+
+//     res.json({
+//       success: true,
+//       userData,
+//       token,
+//       message: 'Login successful',
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+// // CHECK AUTH
+// export const checkAuth = (req, res) => {
+//   res.json({ success: true, user: req.user });
+// };
+
+// // UPDATE PROFILE
+// export const updateProfile = async (req, res) => {
+//   try {
+//     const { fullName, bio, profilePic } = req.body;
+//     const userId = req.user._id;
+
+//     let updateUser;
+
+//     if (!profilePic) {
+//       updateUser = await User.findByIdAndUpdate(
+//         userId,
+//         { fullName, bio },
+//         { new: true }
+//       );
+//     } else {
+//       const upload = await cloudinary.uploader.upload(profilePic);
+//       updateUser = await User.findByIdAndUpdate(
+//         userId,
+//         {
+//           fullName,
+//           bio,
+//           profilePic: upload.secure_url,
+//         },
+//         { new: true }
+//       );
+//     }
+
+//     res.json({ success: true, user: updateUser });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
