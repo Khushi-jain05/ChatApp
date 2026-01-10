@@ -20,9 +20,19 @@ export const signup=async (req,res)=>{
             password:hashedPassword,
             bio
         });
-        const token=generateToken(newUser._id);
-        res.json({success:true,userData:newUser,token,
-            message:"Account created successfully"});
+        const token = generateToken(newUser._id);
+
+        // remove password before sending response
+        const userSafe = { ...newUser._doc };
+        delete userSafe.password;
+        
+        res.json({
+          success: true,
+          userData: userSafe,
+          token,
+          message: "Account created successfully"
+        });
+        
     } catch (error) {
         console.log(error.message);
         
@@ -31,26 +41,37 @@ export const signup=async (req,res)=>{
     }
 }
 
-export const login=async (req,res)=>{
-    
-
+export const login = async (req, res) => {
     try {
-        const {email,password}=req.body;
-        const userData=await User.findOne({email});
-        const isPasswordCorrect=await bcrypt.compare(password,userData.password);
-        if(!isPasswordCorrect){
-            return res.json({success:false,message:'Invalid credentials'});
-        }
-        const token=generateToken(userData._id);
-        res.json({success:true,userData,token,
-            message:"Account created successfully"});
+      const { email, password } = req.body;
+  
+      const userData = await User.findOne({ email });
+      if (!userData) {
+        return res.json({ success: false, message: "Invalid credentials" });
+      }
+  
+      const isPasswordCorrect = await bcrypt.compare(password, userData.password);
+      if (!isPasswordCorrect) {
+        return res.json({ success: false, message: "Invalid credentials" });
+      }
+  
+      const token = generateToken(userData._id);
+
+// remove password before sending response
+const userSafe = { ...userData._doc };
+delete userSafe.password;
+
+res.json({
+  success: true,
+  userData: userSafe,
+  token
+});
     } catch (error) {
-        console.log(error.message);
-        
-        res.json({success:false,
-            message:error.message});
+      console.log(error.message);
+      res.json({ success: false, message: error.message });
     }
-}
+  };
+  
 export const checkAuth =  (req, res) => {
     res.json({success:true,user:req.user});
 
@@ -61,11 +82,13 @@ export const updateProfile=async (req,res)=>{
         const {fullName,bio,profilePic}=req.body;
         const userId=req.user._id;
         let updateUser;
-        if(!profilePic){
-            await User.findByIdAndUpdate(userId,{
-                fullName,
-                bio},{new:true});
-        }
+        if (!profilePic) {
+            updateUser = await User.findByIdAndUpdate(
+              userId,
+              { fullName, bio },
+              { new: true }
+            );
+          }
         else{
             const upload=await cloudinary.uploader.upload(profilePic)
             updateUser=await User.findByIdAndUpdate(userId,{profilePic:upload.secure_url,bio,fullName},{new:true});
