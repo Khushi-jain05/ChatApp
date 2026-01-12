@@ -1,5 +1,4 @@
 import "dotenv/config";
-
 import express from "express";
 import cors from "cors";
 import http from "http";
@@ -12,39 +11,32 @@ const app = express();
 const server = http.createServer(app);
 
 export const io = new Server(server, {
-    cors: { origin: "*" },
+  cors: { origin: "*" },
 });
 
-// userId -> socketId
 export const userSocketMap = {};
 
 io.on("connection", (socket) => {
-    const userId = socket.handshake.query.userId;
+  const userId = socket.handshake.query.userId;
 
-    if (!userId) {
-        console.log("Socket connected without userId");
-        return;
-    }
+  if (!userId) return;
 
-    console.log("User Connected:", userId);
+  console.log("User Connected:", userId);
 
-    // ✅ store user
-    userSocketMap[userId] = socket.id;
+  userSocketMap[userId] = socket.id;
+  io.emit("getOnlineUsers", userSocketMap);
 
-    // ✅ emit OBJECT (not array)
+  socket.on("disconnect", () => {
+    console.log("User Disconnected:", userId);
+    delete userSocketMap[userId];
     io.emit("getOnlineUsers", userSocketMap);
-
-    socket.on("disconnect", () => {
-        console.log("User Disconnected:", userId);
-
-        delete userSocketMap[userId];
-
-        // ✅ emit OBJECT again
-        io.emit("getOnlineUsers", userSocketMap);
-    });
+  });
 });
 
-app.use(express.json({ limit: "4mb" }));
+// 🔥 THIS IS THE CRITICAL FIX
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
 app.use(cors());
 
 app.use("/api/status", (req, res) => res.send("Server is running"));
@@ -55,5 +47,5 @@ await connectDB();
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () =>
-    console.log(`Server is running on port ${PORT}`)
+  console.log(`Server is running on port ${PORT}`)
 );
