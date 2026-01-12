@@ -2,26 +2,42 @@ import Message from "../models/Message.js";
 import User from "../models/user.js";
 import cloudinary from "../lib/cloudinary.js";
 import {io,userSocketMap} from "../server.js"
-export const  getUserForSidebar = async (req,res) => {
+export const getUserForSidebar = async (req, res) => {
     try {
-        const userId=req.user._id;
-        const filteredUsers=await User.find({_id:{$ne:userId}}).select('-password');
-        const unseenMessages={}
-        const promises=filteredUsers.map(async(user)=>{
-            const messages=await Message.findOne({senderId:user._id,receiverId:userId,seen:false})
-            if(messages.length>0){
-                unseenMessages[user._id]=messages.length;
+        const userId = req.user._id;
 
+        const filteredUsers = await User
+            .find({ _id: { $ne: userId } })
+            .select("-password");
+
+        const unseenMessages = {};
+
+        const promises = filteredUsers.map(async (user) => {
+            const count = await Message.countDocuments({
+                senderId: user._id,
+                receiverId: userId,
+                seen: false,
+            });
+
+            if (count > 0) {
+                unseenMessages[user._id] = count;
             }
         });
+
         await Promise.all(promises);
-        res.json({success:true,users:filteredUsers,unseenMessages});
+
+        res.json({
+            success: true,
+            users: filteredUsers,
+            unseenMessages,
+        });
+
     } catch (error) {
         console.log(error.message);
-        res.json({success:false,message:error.message});
-        
+        res.json({ success: false, message: error.message });
     }
-}
+};
+
 export const getMessages=async(req,res)=>{
     try {
         const {id:selectedUserId}=req.params;

@@ -1,4 +1,4 @@
-import "dotenv/config"; // 🔥 MUST BE FIRST
+import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
@@ -12,22 +12,35 @@ const app = express();
 const server = http.createServer(app);
 
 export const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { origin: "*" },
 });
 
+// userId -> socketId
 export const userSocketMap = {};
 
 io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;
-    console.log("User Connected", userId);
 
-    if (userId) userSocketMap[userId] = socket.id;
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    if (!userId) {
+        console.log("Socket connected without userId");
+        return;
+    }
+
+    console.log("User Connected:", userId);
+
+    // ✅ store user
+    userSocketMap[userId] = socket.id;
+
+    // ✅ emit OBJECT (not array)
+    io.emit("getOnlineUsers", userSocketMap);
 
     socket.on("disconnect", () => {
-        console.log("User Disconnected", userId);
+        console.log("User Disconnected:", userId);
+
         delete userSocketMap[userId];
-        io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
+        // ✅ emit OBJECT again
+        io.emit("getOnlineUsers", userSocketMap);
     });
 });
 
